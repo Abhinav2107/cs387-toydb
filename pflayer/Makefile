@@ -1,7 +1,7 @@
 #PUBLICDIR= /usr0/cs564/public/project
-SRC= buf.c hash.c pf.c
-OBJ= buf.o hash.o pf.o
-HDR = pftypes.h pf.h 
+SRC= buf.c hash.c pf.c raid.c
+OBJ= buf.o hash.o pf.o raid.o
+HDR = pftypes.h pf.h raid.h
 
 pflayer.o: $(OBJ)
 	ld -r -o pflayer.o $(OBJ)

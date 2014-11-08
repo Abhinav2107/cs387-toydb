@@ -5,6 +5,7 @@
 #include <sys/file.h>
 #include "pf.h"
 #include "pftypes.h"
+#include "raid.h"
 
 /* To keep system V and PC users happy */
 #ifndef L_SET
@@ -42,6 +43,7 @@ PFRAID_buf_ele *b = PFRAID_buf;
             b->next->fd = fd;
             b->next->pagenum = pagenum;
             b->next->status = 0;
+            insertRAIDbuf(fd, pagenum); 
             return i;
         }
         b = b->next;
