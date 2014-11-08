@@ -1,5 +1,12 @@
 /* pftypes.h: declarations for Paged File interface */
 
+typedef struct PFRAID_buf_ele {
+    struct PFRAID_buf_ele* prev;
+    struct PFRAID_buf_ele*  next;
+    int status;
+    int fd, pagenum;
+} PFRAID_buf_ele;
+
 /**************************** File Page Decls *********************/
 /* Each file contains a header, which is a integer pointing
 to the first free page, or -1 if no more free pages in the file.

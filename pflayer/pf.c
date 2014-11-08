@@ -24,7 +24,67 @@ sense that it's <0 or >= # of pages in the file */
 #define PFinvalidPagenum(fd,pagenum) ((pagenum)<0 || (pagenum) >= \
 				PFftab[fd].hdr.numpages)
 
+
+struct PFRAID_buf_ele* PFRAID_buf;
+
 extern char *malloc();
+
+int insertPFRAID_buf(fd, pagenum)
+int fd;
+int pagenum;
+{
+int i = 1;
+PFRAID_buf_ele *b = PFRAID_buf;
+    while(1) {
+        if(b->next == NULL) {
+            b->next = (PFRAID_buf_ele *) malloc(sizeof(PFRAID_buf_ele));
+            b->next->prev = b->next;
+            b->next->fd = fd;
+            b->next->pagenum = pagenum;
+            b->next->status = 0;
+            return i;
+        }
+        b = b->next;
+        i++;
+    }   
+}
+
+int fetchPFRAID_buf(i) 
+int i;
+{
+PFRAID_buf_ele *b = PFRAID_buf;
+    if(i <= 0)
+        return PFE_INVALIDFETCH;
+    while(i > 0) {
+        b = b->next;
+        if(b == NULL)
+            return PFE_INVALIDFETCH;
+        i--;
+    }
+    if(b->status == 1) {
+        b->prev->next = b->next;
+        if(b->next != NULL)
+            b->next->prev = b->prev;
+        free(b);
+        return PFE_FETCHED;
+    }
+    else
+        return PFE_PENDING;
+}
+
+void donePFRAID_buf(fd, pagenum)
+int fd;
+int pagenum;
+{
+PFRAID_buf_ele *b = PFRAID_buf;
+    while(1) {
+        b = b->next;
+        if(b->fd == fd && b->pagenum == pagenum) {
+            b->status = 1;
+            return;
+        }
+    }
+}
 
 /****************** Internal Support Functions *****************************/
 static char *savestr(str)
@@ -190,6 +250,9 @@ int i;
 	for (i=0; i < PF_FTAB_SIZE; i++){
 		PFftab[i].fname = NULL;
 	}
+    PFRAID_buf = malloc(sizeof(PFRAID_buf_ele));
+    PFRAID_buf->prev = PFRAID_buf->next = NULL;
+    PFRAID_buf->status = 0;
 }
 
 PF_CreateFile(fname)
@@ -524,8 +587,11 @@ PFfpage *fpage;
 	}
 
 	if ( (error=PFbufGet(fd,pagenum,&fpage,PFreadfcn,PFwritefcn))!= PFE_OK){
-		if (error== PFE_PAGEFIXED)
+		if (error== PFE_PAGEFIXED || error == PFE_DISK)
 			*pagebuf = fpage->pagebuf;
+        if (error == PFE_DISK) {
+            return(insertPFRAID_buf(fd, pagenum));
+        }
 		return(error);
 	}
 

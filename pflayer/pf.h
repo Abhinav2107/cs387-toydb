@@ -30,6 +30,12 @@
 #define PFE_HASHNOTFOUND -18	/* hash table entry not found */
 #define PFE_HASHPAGEEXIST -19	/* page already exist in hash table */
 
+/* RAID Codes */
+#define PFE_DISK -20 /* have to fetch page from disk */
+#define PFE_INVALIDFETCH -21
+#define PFE_FETCHED -22
+#define PFE_PENDING -23
+
 
 /* page size */
 #define PF_PAGE_SIZE	4096
@@ -38,6 +44,12 @@
 extern int PFerrno;		/* error number of last error */
 extern void PF_Init();
 extern void PF_PrintError();
+
+int insertPFRAID_buf(int fd, int pagenum);
+
+int fetchPFRAID_buf(int i);
+
+void donePFRAID_buf(int fd, int pagenum);
 
 int PF_CreateFile(char *fname);
 

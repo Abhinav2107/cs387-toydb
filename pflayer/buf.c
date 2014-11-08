@@ -256,6 +256,7 @@ int error;
 		bpage->fd = fd;
 		bpage->page = pagenum;
 		bpage->dirty = FALSE;
+        error = PFE_DISK;
 	}
 	else if (bpage->fixed){
 		/* page already in memory, and is fixed, so we can't
@@ -264,11 +265,13 @@ int error;
 		PFerrno = PFE_PAGEFIXED;
 		return(PFerrno);
 	}
-
+    else {
+        error = PFE_OK;
+    }
 	/* Fix the page in the buffer then return*/
 	bpage->fixed = TRUE;
 	*fpage = &bpage->fpage;
-	return(PFE_OK);
+	return(error);
 }
 
 PFbufUnfix(fd,pagenum,dirty)
