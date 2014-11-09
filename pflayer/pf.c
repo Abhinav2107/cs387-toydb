@@ -44,7 +44,7 @@ PFRAID_buf_ele *b = PFRAID_buf;
             b->next->next = NULL;
             b->next->pagenum = pagenum;
             b->next->status = 0;
-            insertRAIDbuf(fd, pagenum); 
+            insertRAIDbuf(fd, pagenum, RAID_READ); 
             return i;
         }
         b = b->next;
@@ -208,6 +208,7 @@ RETURN VALUE:
 {
 int error;
 
+    insertRAIDbuf(fd, pagenum, RAID_WRITE);
 	/* seek to the right place */
 	if ((error=lseek(PFftab[fd].unixfd,pagenum*sizeof(PFfpage)+PF_HDR_SIZE,
 				L_SET)) == -1){
@@ -223,7 +224,6 @@ int error;
 		else	PFerrno = PFE_INCOMPLETEWRITE;
 		return(PFerrno);
 	}
-
 	return(PFE_OK);
 
 }

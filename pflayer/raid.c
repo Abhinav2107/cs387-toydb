@@ -46,7 +46,8 @@ static void finish(RAID_buf_ele* b) {
     b->prev->next = b->next;
     if(b->next != NULL)
         b->next->prev = b->prev;
-    donePFRAID_buf(b->fd, b->pagenum);
+    if(b->type == RAID_READ)
+        donePFRAID_buf(b->fd, b->pagenum);
     free(b);
 }
 
@@ -83,7 +84,7 @@ int cost() {
     return time;
 }
 
-void insertRAIDbuf(int fd, int pagenum) {
+void insertRAIDbuf(int fd, int pagenum, int type) {
 RAID_buf_ele *b = RAID_buf;
     while(1) {
         if(b->next == NULL) {
@@ -93,6 +94,7 @@ RAID_buf_ele *b = RAID_buf;
             b->next->fd = fd;
             b->next->pagenum = pagenum;
             b->next->disk = -1;
+            b->next->type = type;
             break;
         }
         b = b->next;
