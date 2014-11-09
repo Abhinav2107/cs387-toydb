@@ -41,6 +41,7 @@ PFRAID_buf_ele *b = PFRAID_buf;
             b->next = (PFRAID_buf_ele *) malloc(sizeof(PFRAID_buf_ele));
             b->next->prev = b->next;
             b->next->fd = fd;
+            b->next->next = NULL;
             b->next->pagenum = pagenum;
             b->next->status = 0;
             insertRAIDbuf(fd, pagenum); 

@@ -1,7 +1,7 @@
 typedef struct RAID_buf_ele {
     int fd;
     int pagenum;
-    int status;
+    int disk;
     struct RAID_buf_ele * prev;
     struct RAID_buf_ele * next;
 } RAID_buf_ele;
