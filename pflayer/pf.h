@@ -70,3 +70,9 @@ int PF_DisposePage(int fd, int pagenum);
 int PF_UnfixPage(int fd, int pagenum, int dirty);
 
 void PF_PrintError(char *s);
+
+void PF_TakeSnapshot(int numfiles, char **files);
+    
+int PF_ReadSnapshot(int fd, int snapshot_fd, int pagenum, char **pagebuf);
+
+

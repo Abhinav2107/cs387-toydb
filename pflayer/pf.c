@@ -12,6 +12,10 @@
 #define L_SET 0
 #endif
 
+int snapped = 0;
+
+const int INT_SIZE = sizeof(int);
+
 int PFerrno = PFE_OK;	/* last error message */
 
 static PFftab_ele PFftab[PF_FTAB_SIZE]; /* table of opened files */
@@ -103,6 +107,31 @@ char *s;
 	if ((s=malloc(strlen(str)+1))!= NULL)
 		strcpy(s,str);
 	return(s);
+}
+
+static PFtabFindUnixfd(unixfd)
+int unixfd;		/* file name to find */
+/****************************************************************************
+SPECIFICATIONS:
+	Find the index to PFftab[] entry whose "unixfd" field is the
+	same as "unixfd". 
+
+AUTHOR: Abhinav
+
+RETURN VALUE:
+	The desired index, or 
+	-1	if not found
+
+*****************************************************************************/
+{
+int i;
+
+	for (i=0; i < PF_FTAB_SIZE; i++){
+		if(PFftab[i].unixfd == unixfd)
+			/* found it */
+			return(i);
+	}
+	return(-1);
 }
 
 static PFtabFindFname(fname)
@@ -206,8 +235,39 @@ RETURN VALUE:
 
 *****************************************************************************/
 {
-int error;
-
+    int error;
+    if(snapped) {
+    int i;
+    i = fd;
+    char * snapshot_fname = malloc(10+strlen(PFftab[i].fname));
+    snapshot_fname = "snapshot_";
+    strcat(snapshot_fname, PFftab[i].fname);
+    int j = PFftabFindFname(snapshot_fname);
+    if(j == -1) {
+        j = PF_OpenFile(snapshot_fname); 
+    }
+    if(j > 0) {
+    lseek(PFftab[j].unixfd, PF_HDR_SIZE, L_SET);
+    PFfpage * page;
+    char * pagebuf;
+    PFfpage * page2;
+    read(PFftab[j].unixfd, page, sizeof(PFfpage));
+    int numpages = *(int *) &page->pagebuf;
+    if(pagenum < numpages) {
+        int location = *(int *) &page->pagebuf[INT_SIZE+pagenum*INT_SIZE];
+        if(location == 0) {
+            lseek(PFftab[fd].unixfd, pagenum*sizeof(PFfpage)+PF_HDR_SIZE, L_SET);
+            read(PFftab[fd].unixfd, page2, sizeof(PFfpage));
+            PF_AllocPage(j, &location, &pagebuf);
+            memcpy(pagebuf, page2->pagebuf, PF_PAGE_SIZE);
+            PF_UnfixPage(j, location, 1);
+            memcpy(&page->pagebuf[INT_SIZE+pagenum*INT_SIZE], (char *) &location, INT_SIZE);
+            lseek(PFftab[j].unixfd, PF_HDR_SIZE, L_SET);
+            write(PFftab[j].unixfd, page, sizeof(PFfpage));
+        }
+    }
+    }
+    }
     insertRAIDbuf(fd, pagenum, RAID_WRITE);
 	/* seek to the right place */
 	if ((error=lseek(PFftab[fd].unixfd,pagenum*sizeof(PFfpage)+PF_HDR_SIZE,
@@ -230,6 +290,64 @@ int error;
 
 
 /************************* Interface Routines ****************************/
+
+void PF_TakeSnapshot(numfiles, files)
+int numfiles;
+char ** files;
+{
+    if(snapped)
+        return;
+    int i;
+    int fd;
+    int pagenum;
+    int numpages;
+    int j;
+    for(i = 0; i < numfiles; i++) {
+        char * snapshot_fname = malloc(10+strlen(files[i]));
+        snapshot_fname = "snapshot_";
+        strcat(snapshot_fname, files[i]);
+        PF_CreateFile(snapshot_fname);
+        char * pagebuf;
+        fd = PF_OpenFile(snapshot_fname);
+        PF_AllocPage(fd, &pagenum, &pagebuf);
+        memset(pagebuf, 0, PF_PAGE_SIZE);
+        j = PF_OpenFile(files[i]);
+        numpages = PFftab[j].hdr.numpages;
+        memcpy(pagebuf, (char *) &numpages, INT_SIZE);
+        PF_CloseFile(j);
+        PF_UnfixPage(fd, pagenum, 1);
+        PF_CloseFile(fd);
+    }
+    snapped = 1;
+}
+
+PF_ReadSnapshot(fd, snapshot_fd, pagenum, pagebuf) 
+int fd;
+int snapshot_fd;
+int pagenum;
+char ** pagebuf;
+{
+    int error;
+    lseek(PFftab[snapshot_fd].unixfd, PF_HDR_SIZE, L_SET);
+    PFfpage * page;
+    read(PFftab[snapshot_fd].unixfd, page, sizeof(PFfpage));
+    int numpages = *(int *) &page->pagebuf;
+    if(pagenum < numpages) {
+        int location = *(int *) &page->pagebuf[INT_SIZE+pagenum*INT_SIZE];
+        if(location == 0) {
+            error = PF_GetThisPage(fd, pagenum, pagebuf);
+            PF_UnfixPage(fd, pagenum, 0);
+            return error;
+        }    
+        else {
+            error = PF_GetThisPage(snapshot_fd, location, pagebuf);
+            PF_UnfixPage(snapshot_fd, location, 0);
+            return error;
+        }
+    }
+    else
+        return PFE_INVALIDPAGE;
+}
 
 void PF_Init()
 /****************************************************************************

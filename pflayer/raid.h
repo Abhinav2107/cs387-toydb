@@ -13,4 +13,5 @@ typedef struct RAID_buf_ele {
 void insertRAIDbuf(int fd, int pagenum, int type);
 void stepTime();
 int cost();
+void resetCost();
 void initRAID();

@@ -84,6 +84,9 @@ int cost() {
     return time;
 }
 
+void resetCost() {
+    time = 0;
+}
 void insertRAIDbuf(int fd, int pagenum, int type) {
 RAID_buf_ele *b = RAID_buf;
     while(1) {
