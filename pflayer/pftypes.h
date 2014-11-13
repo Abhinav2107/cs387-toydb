@@ -1,3 +1,6 @@
+#ifndef __PFTYPES_H__
+#define __PFTYPES_H__
+#define PF_PAGE_SIZE 4096
 /* pftypes.h: declarations for Paged File interface */
 
 typedef struct PFRAID_buf_ele {
@@ -85,3 +88,4 @@ extern PFbufGet();
 extern PFbufUnfix();
 extern PFbufalloc();
 extern PFbufReleaseFile();
+#endif

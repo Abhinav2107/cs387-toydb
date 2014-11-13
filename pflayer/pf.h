@@ -1,3 +1,8 @@
+#ifndef __PF_H__
+#define __PF_H__
+#include "pftypes.h"
+#include "raid.h"
+
 /* pf.h: externs and error codes for Paged File Interface*/
 #ifndef TRUE
 #define TRUE 1		
@@ -45,11 +50,11 @@ extern int PFerrno;		/* error number of last error */
 extern void PF_Init();
 extern void PF_PrintError();
 
-int insertPFRAID_buf(int fd, int pagenum);
+PFRAID_buf_ele* insertPFRAID_buf(int fd, int pagenum);
 
-int fetchPFRAID_buf(int i);
+int fetchPFRAID_buf(PFRAID_buf_ele* b);
 
-void donePFRAID_buf(int fd, int pagenum);
+void donePFRAID_buf(PFRAID_buf_ele* b);
 
 int PF_CreateFile(char *fname);
 
@@ -61,7 +66,7 @@ int PF_CloseFile(int fd);
 
 int PF_GetFirstPage(int fd, int *pagenum, char **pagebuf);
 
-int PF_GetThisPage(int fd, int pagenum,char **pagebuf);
+int PF_GetThisPage(int fd, int pagenum, PFRAID_buf_ele ** ptr, char **pagebuf);
 
 int PF_AllocPage(int fd, int *pagenum,char **pagebuf);
 
@@ -73,6 +78,6 @@ void PF_PrintError(char *s);
 
 void PF_TakeSnapshot(int numfiles, char **files);
     
-int PF_ReadSnapshot(int fd, int snapshot_fd, int pagenum, char **pagebuf);
+int PF_ReadSnapshot(int fd, int snapshot_fd, int pagenum, PFRAID_buf_ele ** ptr, char **pagebuf);
 
-
+#endif

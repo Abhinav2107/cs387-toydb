@@ -3,7 +3,7 @@ PFbufGet(), PFbufUnfix(), PFbufAlloc(), PFbufReleaseFile(), PFbufUsed() and
 PFbufPrint() */
 #include <stdio.h>
 #include "pf.h"
-#include "pftypes.h"
+//#include "pftypes.h"
 
 static int PFnumbpage = 0;	/* # of buffer pages in memory */
 static PFbpage *PFfirstbpage= NULL;	/* ptr to first buffer page, or NULL */

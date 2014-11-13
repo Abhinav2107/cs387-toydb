@@ -1,5 +1,4 @@
 #include "raid.h"
-#include "pf.h"
 #include <stdio.h>
 
 struct RAID_buf_ele* RAID_buf;
@@ -47,7 +46,7 @@ static void finish(RAID_buf_ele* b) {
     if(b->next != NULL)
         b->next->prev = b->prev;
     if(b->type == RAID_READ)
-        donePFRAID_buf(b->fd, b->pagenum);
+        donePFRAID_buf(b->ptr);
     free(b);
 }
 

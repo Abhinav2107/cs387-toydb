@@ -4,8 +4,8 @@
 #include <fcntl.h>
 #include <sys/file.h>
 #include "pf.h"
-#include "pftypes.h"
-#include "raid.h"
+//#include "pftypes.h"
+//#include "raid.h"
 
 /* To keep system V and PC users happy */
 #ifndef L_SET
@@ -34,7 +34,7 @@ struct PFRAID_buf_ele* PFRAID_buf;
 
 extern char *malloc();
 
-int insertPFRAID_buf(fd, pagenum)
+PFRAID_buf_ele* insertPFRAID_buf(fd, pagenum)
 int fd;
 int pagenum;
 {
@@ -49,17 +49,17 @@ PFRAID_buf_ele *b = PFRAID_buf;
             b->next->pagenum = pagenum;
             b->next->status = 0;
             insertRAIDbuf(fd, pagenum, RAID_READ); 
-            return i;
+            return b->next;
         }
         b = b->next;
         i++;
     }   
 }
 
-int fetchPFRAID_buf(i) 
-int i;
+int fetchPFRAID_buf(b) 
+PFRAID_buf_ele* b;
 {
-PFRAID_buf_ele *b = PFRAID_buf;
+/*PFRAID_buf_ele *b = PFRAID_buf;
     if(i <= 0)
         return PFE_INVALIDFETCH;
     while(i > 0) {
@@ -67,7 +67,7 @@ PFRAID_buf_ele *b = PFRAID_buf;
         if(b == NULL)
             return PFE_INVALIDFETCH;
         i--;
-    }
+    }*/
     if(b->status == 1) {
         b->prev->next = b->next;
         if(b->next != NULL)
@@ -79,11 +79,14 @@ PFRAID_buf_ele *b = PFRAID_buf;
         return PFE_PENDING;
 }
 
-void donePFRAID_buf(fd, pagenum)
+void donePFRAID_buf(b)
+PFRAID_buf_ele* b;
+/*
 int fd;
 int pagenum;
+*/
 {
-PFRAID_buf_ele *b = PFRAID_buf;
+/*PFRAID_buf_ele *b = PFRAID_buf;
     while(1) {
         b = b->next;
         if(b->fd == fd && b->pagenum == pagenum) {
@@ -91,6 +94,8 @@ PFRAID_buf_ele *b = PFRAID_buf;
             return;
         }
     }
+*/
+b->status = 1;
 }
 
 /****************** Internal Support Functions *****************************/
@@ -321,10 +326,11 @@ char ** files;
     snapped = 1;
 }
 
-PF_ReadSnapshot(fd, snapshot_fd, pagenum, pagebuf) 
+PF_ReadSnapshot(fd, snapshot_fd, pagenum, ptr, pagebuf) 
 int fd;
 int snapshot_fd;
 int pagenum;
+PFRAID_buf_ele** ptr;
 char ** pagebuf;
 {
     int error;
@@ -335,12 +341,12 @@ char ** pagebuf;
     if(pagenum < numpages) {
         int location = *(int *) &page->pagebuf[INT_SIZE+pagenum*INT_SIZE];
         if(location == 0) {
-            error = PF_GetThisPage(fd, pagenum, pagebuf);
+            error = PF_GetThisPage(fd, pagenum, ptr, pagebuf);
             PF_UnfixPage(fd, pagenum, 0);
             return error;
         }    
         else {
-            error = PF_GetThisPage(snapshot_fd, location, pagebuf);
+            error = PF_GetThisPage(snapshot_fd, location, ptr, pagebuf);
             PF_UnfixPage(snapshot_fd, location, 0);
             return error;
         }
@@ -674,10 +680,11 @@ PFfpage *fpage;	/* pointer to file page */
 
 }
 
-PF_GetThisPage(fd,pagenum,pagebuf)
+PF_GetThisPage(fd,pagenum,ptr,pagebuf)
 int fd;		/* file descriptor */
 int pagenum;	/* page number to read */
 char **pagebuf;	/* pointer to pointer to page data */
+PFRAID_buf_ele **ptr;
 /****************************************************************************
 SPECIFICATIONS:
 	Read the page specifeid by "pagenum" and set *pagebuf to point
@@ -711,7 +718,9 @@ PFfpage *fpage;
 		if (error== PFE_PAGEFIXED || error == PFE_DISK)
 			*pagebuf = fpage->pagebuf;
         if (error == PFE_DISK) {
-            return(insertPFRAID_buf(fd, pagenum));
+            PFRAID_buf_ele* p;
+            p = insertPFRAID_buf(fd, pagenum);
+            *ptr = p;
         }
 		return(error);
 	}
