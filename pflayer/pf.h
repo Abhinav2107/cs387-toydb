@@ -75,9 +75,11 @@ int PF_UnfixPage(int fd, int pagenum, int dirty);
 
 void PF_PrintError(char *s);
 
-void PF_TakeSnapshot(int numfiles, char **files);
+int PF_TakeSnapshot(char *fname);
     
 int PF_ReadSnapshot(int fd, int snapshot_fd, int pagenum, PFRAID_buf_ele ** ptr, char **pagebuf);
+
+void PF_SaveSnapshots();
 
 #define RAID_READ 0
 #define RAID_WRITE 1

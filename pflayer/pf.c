@@ -296,33 +296,34 @@ RETURN VALUE:
 
 /************************* Interface Routines ****************************/
 
-void PF_TakeSnapshot(numfiles, files)
-int numfiles;
-char ** files;
+PF_TakeSnapshot(fname)
+char *fname;
 {
     if(snapped)
-        return;
+        return 1;
     int i;
     int fd;
     int pagenum;
     int numpages;
     int j;
-    for(i = 0; i < numfiles; i++) {
-        char * snapshot_fname = malloc(10+strlen(files[i]));
-        snapshot_fname = "snapshot_";
-        strcat(snapshot_fname, files[i]);
-        PF_CreateFile(snapshot_fname);
-        char * pagebuf;
-        fd = PF_OpenFile(snapshot_fname);
-        PF_AllocPage(fd, &pagenum, &pagebuf);
-        memset(pagebuf, 0, PF_PAGE_SIZE);
-        j = PF_OpenFile(files[i]);
-        numpages = PFftab[j].hdr.numpages;
-        memcpy(pagebuf, (char *) &numpages, INT_SIZE);
-        PF_CloseFile(j);
-        PF_UnfixPage(fd, pagenum, 1);
-        PF_CloseFile(fd);
-    }
+    char snapshot_fname[100];
+    strcpy(snapshot_fname, "snapshot_");
+    strcat(snapshot_fname, fname);
+    PF_CreateFile(snapshot_fname);
+    char * pagebuf;
+    fd = PF_OpenFile(snapshot_fname);
+    PF_AllocPage(fd, &pagenum, &pagebuf);
+    memset(pagebuf, 0, PF_PAGE_SIZE);
+    j = PF_OpenFile(fname);
+    numpages = PFftab[j].hdr.numpages;
+    memcpy(pagebuf, (char *) &numpages, INT_SIZE);
+    PF_CloseFile(j);
+    PF_UnfixPage(fd, pagenum, 1);
+    PF_CloseFile(fd);
+    return 0;
+}
+
+void PF_SaveSnapshots() {
     snapped = 1;
 }
 
