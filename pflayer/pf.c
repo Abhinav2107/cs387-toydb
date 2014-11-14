@@ -43,12 +43,12 @@ PFRAID_buf_ele *b = PFRAID_buf;
     while(1) {
         if(b->next == NULL) {
             b->next = (PFRAID_buf_ele *) malloc(sizeof(PFRAID_buf_ele));
-            b->next->prev = b->next;
+            b->next->prev = b;
             b->next->fd = fd;
             b->next->next = NULL;
             b->next->pagenum = pagenum;
             b->next->status = 0;
-            insertRAIDbuf(fd, pagenum, RAID_READ); 
+            insertRAIDbuf(fd, pagenum, RAID_READ, b->next); 
             return b->next;
         }
         b = b->next;
@@ -139,7 +139,7 @@ int i;
 	return(-1);
 }
 
-static PFtabFindFname(fname)
+int PFtabFindFname(fname)
 char *fname;		/* file name to find */
 /****************************************************************************
 SPECIFICATIONS:
@@ -247,7 +247,7 @@ RETURN VALUE:
     char * snapshot_fname = malloc(10+strlen(PFftab[i].fname));
     snapshot_fname = "snapshot_";
     strcat(snapshot_fname, PFftab[i].fname);
-    int j = PFftabFindFname(snapshot_fname);
+    int j = PFtabFindFname(snapshot_fname);
     if(j == -1) {
         j = PF_OpenFile(snapshot_fname); 
     }
@@ -273,7 +273,7 @@ RETURN VALUE:
     }
     }
     }
-    insertRAIDbuf(fd, pagenum, RAID_WRITE);
+    insertRAIDbuf(fd, pagenum, RAID_WRITE, NULL);
 	/* seek to the right place */
 	if ((error=lseek(PFftab[fd].unixfd,pagenum*sizeof(PFfpage)+PF_HDR_SIZE,
 				L_SET)) == -1){
@@ -372,6 +372,8 @@ GLOBAL VARIABLES MODIFIED:
 int i;
 	/* init the hash table */
 	PFhashInit();
+
+    initRAID();
 
 	/* init the file table to be not used*/
 	for (i=0; i < PF_FTAB_SIZE; i++){

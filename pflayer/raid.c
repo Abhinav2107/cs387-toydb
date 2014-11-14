@@ -1,4 +1,4 @@
-#include "raid.h"
+#include "pf.h"
 #include <stdio.h>
 
 struct RAID_buf_ele* RAID_buf;
@@ -42,12 +42,37 @@ static RAID_buf_ele* choose(int disk, int fd) {
 }
 
 static void finish(RAID_buf_ele* b) {
+    //printf("Finishing %p\n", b);
     b->prev->next = b->next;
     if(b->next != NULL)
         b->next->prev = b->prev;
     if(b->type == RAID_READ)
         donePFRAID_buf(b->ptr);
     free(b);
+}
+
+void printRAIDbuf() {
+
+RAID_buf_ele * b = RAID_buf;
+    printf("===============\n");
+    int i;
+    for(i = 0; i < 4; i++)
+        printf("%d ", diskstatus[i]);
+    printf("\n");
+    printf("%p\n", b);
+    printf("Next: %p\n", b->next);
+    while(b->next) {
+        b = b->next;
+        printf("---------------\n");
+        printf("%p\n", b);
+        printf("fd = %d\n", b->fd);
+        printf("pagenum = %d\n", b->pagenum);
+        printf("disk = %d\n", b->disk);
+        printf("prev = %p\n", b->prev);
+        printf("next = %p\n", b->next);
+        printf("---------------\n");
+    }
+    printf("===============\n");
 }
 
 void stepTime() {
@@ -86,17 +111,18 @@ int cost() {
 void resetCost() {
     time = 0;
 }
-void insertRAIDbuf(int fd, int pagenum, int type) {
+void insertRAIDbuf(int fd, int pagenum, int type, PFRAID_buf_ele * ptr) {
 RAID_buf_ele *b = RAID_buf;
     while(1) {
         if(b->next == NULL) {
             b->next = (RAID_buf_ele *) malloc(sizeof(RAID_buf_ele));
-            b->next->prev = b->next;
+            b->next->prev = b;
             b->next->next = NULL;
             b->next->fd = fd;
             b->next->pagenum = pagenum;
             b->next->disk = -1;
             b->next->type = type;
+            b->next->ptr = ptr;
             break;
         }
         b = b->next;

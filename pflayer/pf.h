@@ -1,7 +1,6 @@
 #ifndef __PF_H__
 #define __PF_H__
 #include "pftypes.h"
-#include "raid.h"
 
 /* pf.h: externs and error codes for Paged File Interface*/
 #ifndef TRUE
@@ -79,5 +78,25 @@ void PF_PrintError(char *s);
 void PF_TakeSnapshot(int numfiles, char **files);
     
 int PF_ReadSnapshot(int fd, int snapshot_fd, int pagenum, PFRAID_buf_ele ** ptr, char **pagebuf);
+
+#define RAID_READ 0
+#define RAID_WRITE 1
+
+typedef struct RAID_buf_ele {
+    int fd;
+    int pagenum;
+    int disk;
+    struct PFRAID_buf_ele * ptr;
+    struct RAID_buf_ele * prev;
+    struct RAID_buf_ele * next;
+    int type;
+} RAID_buf_ele;
+
+void insertRAIDbuf(int fd, int pagenum, int type, PFRAID_buf_ele * ptr);
+void stepTime();
+int cost();
+void resetCost();
+void initRAID();
+void printRAIDbuf();
 
 #endif
