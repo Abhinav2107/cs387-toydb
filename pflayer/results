@@ -1,0 +1,43 @@
+With RAID
+
+Read 0.7
+Immediate 0.4
+
+Buffer Size 20: 838
+Buffer Size 100: 267
+
+
+Read 0.4
+Immediate 0.4
+
+Buffer Size 20: 1136
+Buffer Size 100: 359
+
+Read 0.7
+Immediate 0.8
+
+Buffer Size 20: 1145
+Buffer Size 100: 366
+
+
+Without RAID
+
+Read 0.7
+Immediate 0.4
+
+Buffer Size 20: 1560 
+Buffer Size 100: 561
+
+
+Read 0.4
+Immediate 0.4
+
+Buffer Size 20: 1965
+Buffer Size 100: 641
+
+
+Read 0.7
+Immediate 0.8
+
+Buffer Size 20: 1668
+Buffer Size 100: 592 
