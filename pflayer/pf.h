@@ -100,5 +100,6 @@ int cost();
 void resetCost();
 void initRAID();
 void printRAIDbuf();
+int RAID_buf_count();
 
 #endif

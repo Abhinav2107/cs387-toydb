@@ -1,4 +1,3 @@
-/* pf.c: Paged File Interface Routines+ support routines */
 #include <stdio.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -244,8 +243,8 @@ RETURN VALUE:
     if(snapped) {
     int i;
     i = fd;
-    char * snapshot_fname = malloc(10+strlen(PFftab[i].fname));
-    snapshot_fname = "snapshot_";
+    char snapshot_fname[100];
+    strcpy(snapshot_fname, "snapshot_");
     strcat(snapshot_fname, PFftab[i].fname);
     int j = PFtabFindFname(snapshot_fname);
     if(j == -1) {
@@ -253,24 +252,32 @@ RETURN VALUE:
     }
     if(j > 0) {
     lseek(PFftab[j].unixfd, PF_HDR_SIZE, L_SET);
-    PFfpage * page;
+    PFfpage * page = malloc(sizeof(PFfpage));
     char * pagebuf;
-    PFfpage * page2;
-    read(PFftab[j].unixfd, page, sizeof(PFfpage));
+    PFfpage * wpage = malloc(sizeof(PFfpage));
+    PFfpage * page2 = malloc(sizeof(PFfpage));
+    read(PFftab[j].unixfd, (char*)page, sizeof(PFfpage));
     int numpages = *(int *) &page->pagebuf;
     if(pagenum < numpages) {
         int location = *(int *) &page->pagebuf[INT_SIZE+pagenum*INT_SIZE];
         if(location == 0) {
+            location = PFftab[j].hdr.numpages;
+            PFftab[j].hdr.numpages++;
+            PFftab[j].hdrchanged = TRUE;
             lseek(PFftab[fd].unixfd, pagenum*sizeof(PFfpage)+PF_HDR_SIZE, L_SET);
-            read(PFftab[fd].unixfd, page2, sizeof(PFfpage));
-            PF_AllocPage(j, &location, &pagebuf);
-            memcpy(pagebuf, page2->pagebuf, PF_PAGE_SIZE);
-            PF_UnfixPage(j, location, 1);
+            read(PFftab[fd].unixfd, (char*)page2, sizeof(PFfpage));
+            wpage->nextfree = PF_PAGE_USED;
+            memcpy(wpage->pagebuf, page2->pagebuf, PF_PAGE_SIZE);
             memcpy(&page->pagebuf[INT_SIZE+pagenum*INT_SIZE], (char *) &location, INT_SIZE);
             lseek(PFftab[j].unixfd, PF_HDR_SIZE, L_SET);
-            write(PFftab[j].unixfd, page, sizeof(PFfpage));
+            write(PFftab[j].unixfd, (char*)page, sizeof(PFfpage));
+            lseek(PFftab[j].unixfd, PF_HDR_SIZE+(location*sizeof(PFfpage)), L_SET);
+            write(PFftab[j].unixfd, (char*)wpage, sizeof(PFfpage));
+            insertRAIDbuf(j, location, RAID_WRITE, NULL);
         }
     }
+    free(page);
+    free(page2);
     }
     }
     insertRAIDbuf(fd, pagenum, RAID_WRITE, NULL);
@@ -335,12 +342,20 @@ PFRAID_buf_ele** ptr;
 char ** pagebuf;
 {
     int error;
-    lseek(PFftab[snapshot_fd].unixfd, PF_HDR_SIZE, L_SET);
+    error = lseek(PFftab[snapshot_fd].unixfd, PF_HDR_SIZE, L_SET);
     PFfpage * page;
-    read(PFftab[snapshot_fd].unixfd, page, sizeof(PFfpage));
-    int numpages = *(int *) &page->pagebuf;
+    page = (PFfpage *)malloc(sizeof(PFfpage));
+    error = read(PFftab[snapshot_fd].unixfd, (char *)page, sizeof(PFfpage));
+    int numpages = (int)page->pagebuf[0];
+    numpages += ((int)page->pagebuf[1]) << 8;
+    numpages += ((int)page->pagebuf[2]) << 16;
+    numpages += ((int)page->pagebuf[3]) << 24;
     if(pagenum < numpages) {
-        int location = *(int *) &page->pagebuf[INT_SIZE+pagenum*INT_SIZE];
+        int location = (int)page->pagebuf[INT_SIZE+pagenum*INT_SIZE];
+        location += (int)(page->pagebuf[INT_SIZE+pagenum*INT_SIZE+1]) << 8;
+        location += (int)(page->pagebuf[INT_SIZE+pagenum*INT_SIZE+2]) << 16;
+        location += (int)(page->pagebuf[INT_SIZE+pagenum*INT_SIZE+3]) << 24;
+        free(page);
         if(location == 0) {
             error = PF_GetThisPage(fd, pagenum, ptr, pagebuf);
             PF_UnfixPage(fd, pagenum, 0);
@@ -765,7 +780,6 @@ RETURN VALUE:
 {
 PFfpage *fpage;	/* pointer to file page */
 int error;
-
 	if (PFinvalidFd(fd)){
 		PFerrno= PFE_FD;
 		return(PFerrno);

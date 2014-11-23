@@ -155,3 +155,15 @@ RAID_buf_ele *b = RAID_buf;
         b = b->next;
     }
 }
+
+int RAID_buf_count() {
+    RAID_buf_ele *b = RAID_buf;
+    int i = 0;
+    while(1) {
+        if(b->next == NULL)
+            return i;
+        i++;
+        b = b->next;
+    }
+}
+
